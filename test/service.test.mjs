@@ -14,7 +14,8 @@ function sample(sequence = 1) {
   const ref = { repo: 'team/repo', branch: 'main', sha: 'a'.repeat(40), observedAt: Date.now(), exists: true };
   return { sequence, ageMs: 0, caption: 'Auth API', agentState: 'ready', prNumbers: [], git: {
     branch: 'feature', head: 'b'.repeat(40), shallow: false, staged: [], unstaged: ['auth.ts'], untracked: [], conflicted: [],
-    branchFiles: ['auth.ts'], published: { ...ref, branch: 'feature' }, target: ref,
+    files: [{ path: 'auth.ts', status: 'M', added: 1, removed: 0, lines: [[3, 3]] }], filesBase: 'a'.repeat(40),
+    published: { ...ref, branch: 'feature' }, target: ref,
     publishedComparison: { ahead: 1, behind: 0, contains: true }, targetComparison: { ahead: 1, behind: 0, contains: true },
     upstreamConfigured: true,
   } };
@@ -74,7 +75,7 @@ test('authenticated HTTP state honors ordering, stale/expiry, checkout-wide stop
     view = await state('POST');
     assert.equal(view.workspaces[0].git.publishedComparison, null);
     assert.equal(view.workspaces[0].git.targetComparison, null);
-    assert.equal(view.workspaces[0].git.branchFiles, null);
+    assert.equal(view.workspaces[0].git.filesBase, null);
     remoteSha = 'a'.repeat(40);
     view = await state('POST');
     assert.equal(view.workspaces[0].git.targetComparison.ahead, 1);

@@ -27,8 +27,18 @@ test('CI coverage excludes newer commits, dirty working trees, and checks for an
   assert.equal(checkedCI({ ...pr, headSha: 'c'.repeat(40) }), null);
 });
 
-test('overlap is exact-path metadata and excludes stale observations', () => {
-  const workspace = (id, files, stale = false) => ({ id, stale, git: { branchFiles: files, staged: [], unstaged: [], untracked: [], conflicted: [] } });
-  const rows = [workspace('a', ['auth.ts']), workspace('b', ['auth.ts', 'auth.ts']), workspace('c', ['auth.ts'], true), workspace('d', ['other.ts'])];
-  assert.deepEqual(overlaps(rows), [{ a: 'a', b: 'b', paths: ['auth.ts'] }]);
+test('shared files separate same lines, different areas, whole files, and ranges from different targets', () => {
+  const file = (path, lines, status = 'M') => ({ path, status, added: 1, removed: 1, lines });
+  const workspace = (id, files, base = 'x', stale = false) => ({ id, stale, git: { files, filesBase: base } });
+  const rows = [
+    workspace('a', [file('api.ts', [[10, 20]]), file('new.ts', [], 'A'), file('ui.ts', [[1, 2]])]),
+    workspace('b', [file('api.ts', [[18, 30]]), file('new.ts', [], 'A'), file('ui.ts', [[5, 6]])]),
+    workspace('c', [file('api.ts', [[10, 20]])], 'y'),
+    workspace('d', [file('api.ts', [[10, 20]])], 'x', true),
+  ];
+  assert.deepEqual(overlaps(rows), [
+    { a: 'a', b: 'b', files: [{ path: 'api.ts', kind: 'lines', lines: [[18, 20]] }, { path: 'new.ts', kind: 'file' }, { path: 'ui.ts', kind: 'areas' }] },
+    { a: 'a', b: 'c', files: [{ path: 'api.ts', kind: 'unknown' }] },
+    { a: 'b', b: 'c', files: [{ path: 'api.ts', kind: 'unknown' }] },
+  ]);
 });

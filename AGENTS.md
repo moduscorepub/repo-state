@@ -6,7 +6,7 @@ Write the code that implements the current requirement directly. Prefer existing
 
 ## Product boundary
 
-This is a live repository-state view, not a tracker. Store only the latest workspace snapshot and expire it. Never collect or retain prompts, transcripts, command history, source contents, patches, human activity, productivity metrics, or historical workspace snapshots. A missing workspace means not sharing, never not working.
+This is a live repository-state view, not a tracker. Store only the latest workspace snapshot and expire it. Never collect or retain prompts, transcripts, command history, source contents, unpushed patches, human activity, productivity metrics, or historical workspace snapshots. Changed-line ranges are metadata; pushed diffs may be read from GitHub on request with the requester's own token and are never stored. A missing workspace means not sharing, never not working.
 
 ## Correctness and security
 

@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { collectGit, githubSlug, matchingPRs } from '../lib/git.js';
+import { sharedFile } from '../lib/state.js';
 const exec = promisify(execFile);
 const run = async args => {
   try { const result = await exec(args[0], args.slice(1)); return { exitCode: 0, stdout: result.stdout }; }
@@ -37,7 +38,7 @@ test('real Git collection distinguishes unpublished commits, target drift, renam
     let sample = await collectGit(run, dir, repository);
     assert.equal(sample.git.head, head);
     assert.deepEqual(sample.git.publishedComparison, { ahead: 1, behind: 0, contains: true });
-    assert.deepEqual(sample.git.branchFiles, ['feature.txt']);
+    assert.deepEqual(sample.git.files.map(file => [file.path, file.status]), [['feature.txt', 'A']]);
     await rename(join(dir, 'original name.txt'), join(dir, 'renamed\nfile.txt'));
     await git('add', '-A');
     await writeFile(join(dir, 'loose.txt'), 'outside Claude\n');
@@ -56,7 +57,7 @@ test('real Git collection distinguishes unpublished commits, target drift, renam
     repository.refs['example/project:main'].sha = 'f'.repeat(40);
     sample = await collectGit(run, dir, repository);
     assert.equal(sample.git.targetComparison, null);
-    assert.equal(sample.git.branchFiles, null);
+    assert.equal(sample.git.filesBase, null);
     await git('checkout', '--detach', head);
     sample = await collectGit(run, dir, repository);
     assert.equal(sample.git.branch, null);
@@ -98,9 +99,45 @@ test('metadata collection neither lazy-fetches missing promisor objects nor rewr
     } };
     const sample = await collectGit(run, client, repository, 'example/project');
     assert.equal(sample.git.targetComparison, null);
-    assert.equal(sample.git.branchFiles, null);
+    assert.equal(sample.git.filesBase, null);
     assert.notEqual((await run(['git', '--no-lazy-fetch', '-C', client, 'cat-file', '-e', target])).exitCode, 0);
     assert.deepEqual(await readFile(index), before);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('changed lines map onto the current target so branches from older bases compare by real line', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'repo-state-lines-'));
+  const git = async (...args) => {
+    const result = await run(['git', '-C', dir, ...args]);
+    assert.equal(result.exitCode, 0, args.join(' ')); return result.stdout.trim();
+  };
+  const original = Array.from({ length: 30 }, (_, i) => `line ${i + 1}`);
+  const moved = [...['a', 'b', 'c', 'd', 'e'].map(name => `new ${name}`), ...original];
+  const write = rows => writeFile(join(dir, 'api.txt'), `${rows.join('\n')}\n`);
+  const sample = async repository => (await collectGit(run, dir, repository, 'example/project')).git;
+  try {
+    await git('init', '-b', 'main');
+    await git('config', 'user.email', 'test@example.invalid');
+    await git('config', 'user.name', 'Repo State Test');
+    await git('remote', 'add', 'origin', 'https://github.com/example/project.git');
+    await write(original); await git('add', '.'); await git('commit', '-m', 'base');
+    await git('checkout', '-b', 'alice');
+    await write(original.map((row, i) => i >= 19 && i <= 21 ? 'alice' : row)); await git('commit', '-am', 'alice');
+    await git('checkout', 'main');
+    await write(moved); await git('commit', '-am', 'target moved down five lines');
+    const target = await git('rev-parse', 'HEAD');
+    const repository = { slug: 'example/project', defaultBranch: 'main', prs: [],
+      refs: { 'example/project:main': { sha: target, exists: true, observedAt: Date.now() } } };
+    await write(moved.map((row, i) => i === 26 ? 'bob' : row));
+    const bob = await sample(repository);
+    await write(moved.map((row, i) => i === 1 ? 'carol' : row));
+    const carol = await sample(repository);
+    await git('checkout', '--', 'api.txt'); await git('checkout', 'alice');
+    const alice = await sample(repository);
+    assert.deepEqual(alice.files, [{ path: 'api.txt', status: 'M', added: 3, removed: 3, lines: [[25, 27]] }]);
+    assert.equal(alice.filesBase, target);
+    assert.deepEqual(sharedFile(alice.files[0], bob.files[0], alice.filesBase, bob.filesBase), { kind: 'lines', lines: [[27, 27]] });
+    assert.equal(sharedFile(alice.files[0], carol.files[0], alice.filesBase, carol.filesBase).kind, 'areas');
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 

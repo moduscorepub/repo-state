@@ -3,6 +3,6 @@
   "owner": { "name": "moduscorepub" },
   "metadata": { "description": "Live shared repository state inside Claude Code. No tracking or activity history." },
   "plugins": [
-    { "name": "repo-state", "source": "./", "description": "Live repository state, not a tracker", "version": "0.1.0" }
+    { "name": "repo-state", "source": "./", "description": "Live PR board and changed-line overlaps, not a tracker", "version": "0.2.0" }
   ]
 }
