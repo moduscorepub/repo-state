@@ -22,6 +22,20 @@ The pane scrolls natively; Tab walks controls, arrows scroll, and Ctrl+X then Ta
 - An authenticated GitHub CLI (`gh auth login`) or `REPO_STATE_TOKEN` in Claude's environment.
 - Contributor access to a public repository (`TRIAGE`, `WRITE`, `MAINTAIN`, or `ADMIN`), or authenticated `READ` access to a private repository.
 
+## Install from GitHub
+
+```sh
+claude plugin marketplace add https://github.com/moduscorepub/repo-state.git
+claude plugin install repo-state@moduscorepub
+claude plugin list
+```
+
+Restart Claude Code after installation. The HTTPS URL does not require GitHub SSH credentials. To run the service yourself, clone the repository and follow the service instructions below:
+
+```sh
+git clone https://github.com/moduscorepub/repo-state.git
+```
+
 ## Install from a checkout
 
 Register the local marketplace using the absolute path to this checkout:
@@ -137,6 +151,8 @@ claude plugin validate .
 The built-in Node suite covers real Git revisions/renames/shallow and promisor history, index immutability, fork-aware PR association, dependency and cycle behavior, CI coverage, exact-path overlap, authenticated HTTP ownership/order/concurrency/stop/expiry, delayed observations, stale references, and signed invalidation.
 
 Runtime verification used Node 25.9.0, Git 2.54.0, and Claude Code 2.1.289 on macOS arm64. It exercised the real service and two actual checkouts/native clients under **one authenticated account**, consent cancellation and acceptance, background outside-editor changes, branch switching, full-SHA/path details, overlap notices, caption typing and branch scope, refresh/stop controls, model `running → ready`, permission state, and local marketplace installation. A real authenticated upload held for 16 seconds was rejected rather than stamped as fresh.
+
+The public GitHub marketplace was registered and installed in isolated Claude configurations using both `moduscorepub/repo-state` and its explicit HTTPS URL. A fresh HTTPS clone passed all 10 tests and native plugin validation; `npm start` launched the downloaded service and `/health` returned `{"ok":true}`.
 
 Real GitHub reads verified contributor authorization, spectator denial, exact refs, a merged associated PR, and a nonexistent prerequisite. Populated native review/CI/merge-queue/cycle/unknown-dependency presentation and individual-reference staleness were exercised using a **clearly labeled controlled GitHub fixture**, not a live queued PR. Owner isolation and login reuse were tested against controlled HTTP authentication; two different live GitHub users were not exercised. There is no claim of older Claude/Git compatibility, multi-process deployment, production-scale load testing, or a CI guarantee for unpublished work.
 
