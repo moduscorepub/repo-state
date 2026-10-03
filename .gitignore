@@ -1,0 +1,7 @@
+node_modules/
+.env
+.env.*
+.DS_Store
+.claude/
+.claude-plugin/types/
+tsconfig.json

@@ -1,0 +1,4 @@
+{
+  "description": "Read-only repository state and native team pane",
+  "modules": ["./register.js"]
+}
